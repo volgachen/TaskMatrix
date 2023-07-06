@@ -3,7 +3,12 @@
 
 # coding: utf-8
 import os
+# os.environ['OPENAI_API_KEY'] = ''
+# socks5 is not well supported in httpx, so hack like this
+os.environ['ALL_PROXY'] = 'socks5://username@127.0.0.1:1080'
+os.environ['NO_PROXY'] = '127.0.0.1,localhost,huggingface.co'
 import gradio as gr
+os.environ['ALL_PROXY'] = 'socks5h://127.0.0.1:1080'
 import random
 import torch
 import cv2
@@ -1516,7 +1521,8 @@ class ConversationBot:
         return gr.update(visible = True), gr.update(visible = False), gr.update(placeholder=place), gr.update(value=label_clear)
 
     def run_text(self, text, state):
-        self.agent.memory.buffer = cut_dialogue_history(self.agent.memory.buffer, keep_last_n_words=500)
+        # TODO: recover cut history
+        # self.agent.memory.buffer = cut_dialogue_history(self.agent.memory.buffer, keep_last_n_words=500)
         res = self.agent({"input": text.strip()})
         res['output'] = res['output'].replace("\\", "/")
         response = re.sub('(image/[-\w]*.png)', lambda m: f'![](file={m.group(0)})*{m.group(0)}*', res['output'])
@@ -1540,12 +1546,13 @@ class ConversationBot:
         print(f"Resize image form {width}x{height} to {width_new}x{height_new}")
         description = self.models['ImageCaptioning'].inference(image_filename)
         if lang == 'Chinese':
-            Human_prompt = f'\nHuman: 提供一张名为 {image_filename}的图片。它的描述是: {description}。 这些信息帮助你理解这个图像，但是你应该使用工具来完成下面的任务，而不是直接从我的描述中想象。 如果你明白了, 说 \"收到\". \n'
-            AI_prompt = "收到。  "
+            self.agent.memory.chat_memory.add_user_message(f"提供一张名为 {image_filename}的图片。它的描述是: {description}。 这些信息帮助你理解这个图像，但是你应该使用工具来完成下面的任务，而不是直接从我的描述中想象。 如果你明白了, 说 \"收到\"。")
+            self.agent.memory.chat_memory.add_ai_message("收到。")
+            AI_prompt = "收到。"
         else:
-            Human_prompt = f'\nHuman: provide a figure named {image_filename}. The description is: {description}. This information helps you to understand this image, but you should use tools to finish following tasks, rather than directly imagine from my description. If you understand, say \"Received\". \n'
-            AI_prompt = "Received.  "
-        self.agent.memory.buffer = self.agent.memory.buffer + Human_prompt + 'AI: ' + AI_prompt
+            self.agent.memory.chat_memory.add_user_message(f'provide a figure named {image_filename}. The description is: {description}. This information helps you to understand this image, but you should use tools to finish following tasks, rather than directly imagine from my description. If you understand, say \"Received\".')
+            self.agent.memory.chat_memory.add_user_message("Received.")
+            AI_prompt = "Received."
         state = state + [(f"![](file={image_filename})*{image_filename}*", AI_prompt)]
         print(f"\nProcessed run_image, Input image: {image_filename}\nCurrent state: {state}\n"
               f"Current Memory: {self.agent.memory.buffer}")

@@ -50,20 +50,16 @@ By leveraging **both general and deep knowledge**, we aim at building an AI that
 ## Quick Start
 
 ```
+# for environment setup please follow
+# https://github.com/volgachen/Awesome-AI-Environment
+# Different from official, we have update langchain==0.0.225
+
 # clone the repo
-git clone https://github.com/microsoft/TaskMatrix.git
+git clone https://github.com/volgachen/TaskMatrix.git
 
 # Go to directory
 cd visual-chatgpt
 
-# create a new environment
-conda create -n visgpt python=3.8
-
-# activate the new environment
-conda activate visgpt
-
-#  prepare the basic environments
-pip install -r requirements.txt
 pip install  git+https://github.com/IDEA-Research/GroundingDINO.git
 pip install  git+https://github.com/facebookresearch/segment-anything.git
 
